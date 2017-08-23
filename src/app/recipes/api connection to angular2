@@ -1,0 +1,108 @@
+//api service (services/anything.js)
+export class Words {
+  getWord() {
+    var jwt = localStorage.getItem('jwt');
+
+    return fetch('http://localhost:3001/api/random-word', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'bearer ' + jwt
+      }
+    })
+    .then((response) => {
+      return response.text();
+    })
+    .then((text) => {
+      return JSON.parse(text);
+    })
+  }
+}
+// home/home.js
+
+import {Words} from '../services/words';
+@Component({
+  selector: 'home',
+  injectables: [Words]
+})
+export class Home {
+  constructor(words: Words) {
+    this.words = words;
+  }
+}
+
+
+//services/auth.js
+
+export class Auth {
+  constructor() {
+    this.token = localStorage.getItem('jwt');
+    this.user = this.token && jwt_decode(this.token);
+  }
+
+  isAuth() {
+    return !!this.token;
+  }
+
+  getUser() {
+    return this.user;
+  }
+
+  login(username, password) {
+    return fetch('http://localhost:3001/sessions/create', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username, password
+      })
+    })
+    .then((response) => {
+      return response.text();
+    })
+    .then((text) => {
+      this.token = JSON.parse(text).id_token;
+      localStorage.setItem('jwt', this.token);
+    });
+  }
+
+  logout() {
+    localStorage.removeItem('jwt');
+    this.token = null;
+    this.user = null;
+  }
+}
+
+//login/login.js
+
+import {Component, View} from 'angular2/angular2';
+import {Router} from 'angular2/router';
+import {Auth} from '../services/auth';
+
+@Component({
+  selector: 'login',
+  injectables: [Auth]
+})
+@View({
+  templateUrl: 'login/login.html'
+})
+export class Login {
+  constructor(router: Router, auth: Auth) {
+    this.router = router;
+    this.auth = auth;
+  }
+
+  login(event, username, password) {
+    event.preventDefault();
+    this.auth.login(username, password).then(() => {
+      this.router.parent.navigate('/home');
+    })
+    .catch((error) => {
+      alert(error);
+    });
+  }
+}
+
